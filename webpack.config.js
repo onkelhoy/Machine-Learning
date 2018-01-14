@@ -13,9 +13,6 @@ module.exports = {
     path: path.resolve(__dirname, '/dist')
   },
   devServer: {
-    proxy: {
-      '/api': 'http://localhost:3000'
-    },
     contentBase: path.join(__dirname, 'dist'),
     compress: true,
     historyApiFallback: true,

@@ -19,7 +19,7 @@ export default class Matrix {
   randomize (min = 0, max = 1) {
     const range = Math.abs(max - min)
     this.map(value => {
-      return Math.random() * range - min
+      return Math.random() * range + min
     })
   }
 
