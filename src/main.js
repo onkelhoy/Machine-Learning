@@ -1,6 +1,17 @@
 import Matrix from './library/matrix'
 
-let m = new Matrix(2, 3)
+let a = new Matrix([
+  [1, 2, 3]
+])
 
-m.randomize(-2, 2)
-m.print()
+let b = new Matrix([
+  [4],
+  [2],
+  [5]
+])
+
+let c = Matrix.Product(b, a)
+
+a.print()
+b.print()
+c.print()
