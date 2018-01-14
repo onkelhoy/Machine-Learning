@@ -13,7 +13,13 @@ export default class Matrix {
       }
     }
   }
-
+  /**
+   * 
+   * @param {is a 1D array of numbers} array 
+   * @param {number of rows} rows 
+   * @param {number of columns} columns 
+   * @returns Matrix based on the given array
+   */
   static FromArray (array, rows, columns) {
     if (array.length !== rows * columns) throw new Error('Array length does not match rows and columns')
     const m = new Matrix(rows, columns)
