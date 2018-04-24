@@ -1,0 +1,178 @@
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Grid World</title>
+
+  <style media="screen">
+    body {
+      background-color: Azure;
+
+      padding: 20px 100px;
+    }
+    .grid {
+      background-color: black;
+      width: 400px;
+      height: 300px;
+      position: relative;
+      float: left;
+    }
+    .row {
+      width: 100%;
+      height: calc(100% / 3);
+    }
+    .row::after {
+      clear: both;
+    }
+    .column {
+      width: calc(100% / 4);
+      height: 100%;
+      outline: 3px solid black;
+
+      float: left;
+      background-color: white;
+      overflow: hidden;
+      position: relative;
+    }
+    .empty::after {
+      content: '';
+      width: 2px;
+      height: 200px;
+
+      position: absolute;
+      background-color: #888;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(45deg);
+    }
+
+    .empty::before {
+      content: '';
+      width: 2px;
+      height: 200px;
+
+      position: absolute;
+      background-color: #888;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-45deg);
+    }
+
+    .goal {
+      background-color: LawnGreen;
+    }
+    .loss {
+      background-color: tomato;
+    }
+    .wall {
+      background-color: black;
+    }
+
+    .player {
+      background-color: cornflowerblue;
+      width: 25px;
+      height: 25px;
+
+      position: absolute;
+      transform: translate(-50%, -50%);
+    }
+
+    .info {
+      width: 200px;
+      height: 300px;
+
+      background-color: white;
+      border: 2px solid #aaa;
+      float: left;
+
+      position: relative;
+      left: 200px;
+    }
+    .info > h3 {
+      margin: 0;
+      width: 100%;
+      height: 100px;
+      text-align: center;
+      line-height: 100px;
+      background-color: Violet;
+    }
+  </style>
+</head>
+<body>
+  <h1>A reinforcement learning concept (bellman)</h1>
+
+  <div class="grid">
+    <div class="row">
+      <div class="column empty"></div>
+      <div class="column empty"></div>
+      <div class="column empty"></div>
+      <div class="column goal"></div>
+    </div>
+    <div class="row">
+      <div class="column empty"></div>
+      <div class="column wall"></div>
+      <div class="column empty"></div>
+      <div class="column loss"></div>
+    </div>
+    <div class="row">
+      <div class="column empty"></div>
+      <div class="column empty"></div>
+      <div class="column empty"></div>
+      <div class="column empty"></div>
+    </div>
+
+    <div class="player"></div>
+  </div>
+
+  <div class="info">
+    <h3>Information</h3>
+
+    <p class='info-text'></p>
+  </div>
+
+
+  <script type="text/javascript">
+    const player = {
+      pos: {x: 0, y: 2},
+      elm: document.querySelector('.player')
+    }
+    move()
+
+    function move () {
+      player.elm.style.left = (player.pos.x * 100 + 50) + 'px'
+      player.elm.style.top = (player.pos.y * 100 + 50) + 'px'
+    }
+
+    document.onkeyup = function (e) {
+      let before = {x:player.pos.x, y:player.pos.y}
+      switch (e.key) {
+        case 'ArrowUp':
+          player.pos.y--
+          break
+        case 'ArrowDown':
+          player.pos.y++
+          break
+        case 'ArrowLeft':
+          player.pos.x--
+          break
+        case 'ArrowRight':
+          player.pos.x++
+          break
+      }
+
+      if (before.x + before.y !== player.pos.x + player.pos.y) {
+        if (player.pos.x < 0) player.pos.x = 0
+        if (player.pos.y < 0) player.pos.y = 0
+        if (player.pos.x > 3) player.pos.x = 3
+        if (player.pos.y > 2) player.pos.y = 2
+
+        if (player.pos.x === 1 && player.pos.y === 1)
+          player.pos = before
+        move()
+      }
+    }
+
+  </script>
+</body>
+</html>
