@@ -1,84 +1,131 @@
 import Matrix from './Matrix'
-import { Sigmoid } from './ActivationFunctions'
+import { Sigmoid, SigmoidPrime, dsigmoid } from './ActivationFunctions'
 
-
-// Two layer network
 export default class NeuralNetwork {
   /**
+   * layers can be defined so we have mulitple layers ( the last is output )
+   * must have at least two numbers
+   * @param {Number} layers 
+   */
+  constructor (...layers) {
+    if (layers.length < 2) throw new Error('NeuralNetwork must at least have two layers')
+    this.weights = []
+    this.bias = []
+
+    for (let i=0; i<layers.length-1; i++) {
+      let w = new Matrix(layers[i+1], layers[i])
+      w.randomize()
+
+      this.weights.push(w)
+      this.bias.push(new Matrix(layers[i+1], 1)) // initilized with zeros !
+    }
+
+    this.params = {
+      a: [],
+      loss: [],
+      learning_rate: 0.03
+    }
+    this.grads = {
+      dw: [],
+      db: []
+    }
+  }
+
+  /**
+   * Takes input X and outputs yhat
    * 
-   * @param {Number} input_nodes 
-   * @param {Number} hidden_nodes 
-   * @param {Number} output_nodes 
+   * @param {Array} X 
+   * @returns {Array} 
    */
-  constructor (input_nodes, hidden_nodes, output_nodes) {
-    this.num_input = input_nodes
-    this.num_hidden = hidden_nodes
-    this.num_output = output_nodes
+  Feedforward (X) {
+    let a = Matrix.FromArray(X)
+    // resetting
+    this.params.a = []
+    this.params.a.push(a)
 
-    this.weights_ih = new Matrix(hidden_nodes, input_nodes)
-    this.weights_ho = new Matrix(output_nodes, hidden_nodes)
-    this.weights_ih.randomize()
-    this.weights_ho.randomize()
-
-    this.bias_h = new Matrix(hidden_nodes, 1)
-    this.bias_o = new Matrix(output_nodes, 1)
+    // store a & z for ease of calculation later
+    for (let i=0; i<this.weights.length; i++) {
+      let z = Matrix.dot(this.weights[i], a) // maybe take the transpose of w
+      z.add(this.bias[i])
+      a = Matrix.map(z, Sigmoid)
+      this.params.a.push(a) 
+    }
+    return a.ToArray()
   }
-  
   /**
+   * Set the learning rate to wished alpha
+   */
+  set learningRate (alpha) {
+    this.params.learning_rate = alpha
+  } 
+
+  /**
+   * Takes the guess (yhat) and the real ans (y) and gives the error
+   * @returns {Array}
    * 
-   * @param {Array} input_array 
+   * @param {Array} yhat 
+   * @param {Array} y 
    */
-  FeedForward (input_array) {
-    let inputs = Matrix.FromArray(input_array)
+  Lost (yhat, y, fn = this.LogisticLost) {
+    // Logistic Lost function
+    let l = []
+    for (let i=0; i<y.length; i++)
+      l.push(fn(yhat[i], y[i]))
 
-    // Generate the hidden outputs
-    let hidden = Matrix.Product(this.weights_ih, inputs)
-    hidden.add(this.bias_h)
-    // Activation Function
-    hidden.map(Sigmoid)
-
-    // Generate the output outputs
-    let output = Matrix.Product(this.weights_ho, hidden)
-    output.add(this.bias_o)
-    // Activation functoin
-    output.map(Sigmoid)
-
-    return output.ToArray()
+    return l
   }
 
   /**
-   * y - prediction output
-   * yhat - desired output
-   * @param {Scalar} y 
-   * @param {Scalar} yhat 
+   * Calculates the derivatives of weights & bias
+   * 
+   * @param {Array} y 
+   * @param {Array} yhat 
    */
-  Lost (y, yhat) {
-    // the log
-    return -y*Math.log(yhat) + (1-y)*Math.log(1-yhat)
+  Backpropargation (y, yhat) {
+    // Calculate for the output layer
+    const l = this.weights.length-1
+    let wT = Matrix.subtractArray(y, yhat)
+    let delta
+
+    // Calculate for all the hidden layers
+    for (let i=l; i>=0; i--) {
+      let aT = this.params.a[i].T // will eventually be input X
+      let dz = Matrix.map(this.params.a[i+1], dsigmoid)
+
+      let gradient = Matrix.multiply(wT, dz)
+
+      if (delta === undefined) delta = gradient
+      else delta = Matrix.dot(gradient, delta)
+      
+      let dw = Matrix.dot(delta, aT)
+      dw.multiply(this.params.learning_rate)
+      this.weights[i].add(dw)
+
+      wT = this.weights[i].T
+    }
   }
+
   /**
-   * The sum of all lost 
+   * Takes input X and maps weights & bias accordingly to output y 
+   * 
+   * @param {Array} X 
+   * @param {Array} y 
    */
-  Cost () {
-    // 1/m * sum(Lost(y, yhat))
-  }
-  backpropagation (A, y) {
-    // calculate dirivative of Z
-    // let dz2 = A - y
-    // let dz1 = w1.T * dz2 * g'(z1)
+  Train (X, y) {
+    let yhat = this.Feedforward(X)
 
-    // calculate dirivative of weight (m => #training examples)
-    let dw = 1/this.m * dz * A.Transpose()
-
-    // calculate dirivative of bias
-    let db = 
+    
+    this.Backpropargation(y, yhat)
   }
 
-  Train (X, yhat) {
-    let y = this.FeedForward(X)
-    // now compute error using y & yhat
-    let lost = this.Lost(y, yhat)
-
-    return y
+  /**
+   * The logistic lost function return the lost of y and yhat
+   * 
+   * @returns {Number}
+   * @param {Number} yhat 
+   * @param {Number} y 
+   */
+  LogisticLost (yhat, y) {
+    return -y*Math.log(yhat) - (1-y)*Math.log(1-yhat)
   }
 }

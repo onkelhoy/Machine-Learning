@@ -28,6 +28,20 @@ export default class Matrix {
     })
     return m
   } 
+  /**
+   * Returns the Transpose of the matrix
+   */
+  Transpose () {
+    let m = new Matrix(this.columns, this.rows)
+
+    m.map((v, r, c) => {
+      return this.data[c][r]
+    })
+    return m 
+  }
+  get T () {
+    return this.Transpose()
+  }
 
   /**
    * converts Matrix to a array (1xN matrix)
@@ -49,12 +63,12 @@ export default class Matrix {
     }
   }
 
-  randomize (min = 0, max = 10) {
+  randomize (min = 0, max = 1) {
     const range = Math.abs(max - min)
     this.map(value => Math.random() * range + min)
   }
 
-  static Product (a, b) {
+  static dot (a, b) {
     if (a.columns !== b.rows)
       throw new Error(`The rows and columns doesn\'t match [${a.columns}][${b.rows}]`)
     
@@ -89,6 +103,27 @@ export default class Matrix {
     return nm
   }
 
+  /**
+   * subtracts all the values from the equally sized arrays & returns an Matrix
+   * 
+   * @returns {Matrix}
+   * @param {Array} a 
+   * @param {Array} b 
+   */
+  static subtractArray (a, b) {
+    let m = new Matrix(a.length, 1)
+    for (let i=0;i<a.length;i++)
+      m.data[i][0] = a[i] - b[i]
+
+    return m
+  }
+
+  subtract (n) {
+    if (n instanceof Matrix)
+      this.map((v, r, c) => v - n.data[r][c])
+    else
+      this.map(v => v - n)
+  }
   add (n) {
     if (n instanceof Matrix)
       this.map((v, r, c) => n.data[r][c] + v)
@@ -100,15 +135,10 @@ export default class Matrix {
     this.map(v => v * n)
   }
 
-  print () {
+  get Print () {
     console.table(this.data)
   }
-  Transpose () {
-    let m = new Matrix(this.columns, this.rows)
-
-    m.map((v, r, c) => {
-      return this.data[c][r]
-    })
-    return m 
+  get Shape () {
+    console.log(`(${this.rows}x${this.columns})`)
   }
 }
