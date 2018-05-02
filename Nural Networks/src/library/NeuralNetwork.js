@@ -25,10 +25,7 @@ export default class NeuralNetwork {
       loss: [],
       learning_rate: 0.03
     }
-    this.grads = {
-      dw: [],
-      db: []
-    }
+    this.grads = []
   }
 
   /**
@@ -60,13 +57,74 @@ export default class NeuralNetwork {
   } 
 
   /**
+   * Takes input X and maps weights & bias accordingly to target output y 
+   * 
+   * @param {Array} X 
+   * @param {Array} y 
+   */
+  Train (X, y, batchSize = X.length) {
+    
+
+    // calculate the output prediction
+    let yhat = this.Feedforward(X)
+
+    // now backpropargate the error and calculate the gradients
+    const grads = this.Backpropargation(y, yhat)
+
+    // update the weights and biases 
+    this.Update(grads)
+  }
+
+  /**
+   * Trains the network with mini batches (for now the core benifit is not implemented yet (doing the backprop later))
+   * 
+   * @param {2dArray} X 
+   * @param {2dArray} y 
+   * @param {Number} batchSize
+   */
+  TrainBatch (X, y, batchSize = X.length) {
+    const batches = Math.ceil(X.length / batchSize) // ceil in order to get the last also
+    // loop the batches
+    for (let i=0; i<batches; i++) {
+      const start = i * batchSize // gets batchsize or whats left
+      const end = batchSize - ((start + batchSize) % X.length) * (1 - (batchSize % (X.length - start)) / batchSize)
+      // loop batch
+      for (let j=start; j<start+end; j++) {
+        this.Train(X[j], y[j])
+      }
+    }
+  }
+
+  /**
+   * Updates the weights & biases based on the gradients [w, b]
+   * 
+   * @param {Array} grads 
+   */
+  Update (grads) {
+    const l = grads.length-1
+
+    // updating the weights and biases (w+, b+)
+    for (let i=0; i<=l; i++) {
+      let dw = grads[l-i][0]
+      let db = grads[l-i][1]
+
+      // multiply by the learning rate (alpha)
+      dw.multiply(this.params.learning_rate)
+      db.multiply(this.params.learning_rate)
+
+      this.weights[i].subtract(dw)
+      this.bias[i].subtract(db)
+    }
+  }
+
+  /**
    * Takes the guess (yhat) and the real ans (y) and gives the error
    * @returns {Array}
    * 
    * @param {Array} yhat 
    * @param {Array} y 
    */
-  Lost (yhat, y, fn = this.LogisticLost) {
+  Cost (yhat, y, fn = this.LogisticLost) {
     // Logistic Lost function
     let l = []
     for (let i=0; i<y.length; i++)
@@ -76,48 +134,14 @@ export default class NeuralNetwork {
   }
 
   /**
-   * Calculates the derivatives of weights & bias
+   * Mean squered error
    * 
-   * @param {Array} y 
-   * @param {Array} yhat 
+   * @param {scalar} yhat 
+   * @param {scalar} y 
    */
-  Backpropargation (y, yhat) {
-    // Calculate for the output layer
-    const l = this.weights.length-1
-    let wT = Matrix.subtractArray(y, yhat)
-    let delta
-
-    // Calculate for all the hidden layers
-    for (let i=l; i>=0; i--) {
-      let aT = this.params.a[i].T // will eventually be input X
-      let dz = Matrix.map(this.params.a[i+1], dsigmoid)
-
-      let gradient = Matrix.multiply(wT, dz)
-
-      if (delta === undefined) delta = gradient
-      else delta = Matrix.dot(gradient, delta)
-      
-      let dw = Matrix.dot(delta, aT)
-      dw.multiply(this.params.learning_rate)
-      this.weights[i].add(dw)
-
-      wT = this.weights[i].T
-    }
+  MSELost (yhat, y) {
+    return 1/2 * Math.pow(y - yhat, 2)
   }
-
-  /**
-   * Takes input X and maps weights & bias accordingly to output y 
-   * 
-   * @param {Array} X 
-   * @param {Array} y 
-   */
-  Train (X, y) {
-    let yhat = this.Feedforward(X)
-
-    
-    this.Backpropargation(y, yhat)
-  }
-
   /**
    * The logistic lost function return the lost of y and yhat
    * 
@@ -128,4 +152,43 @@ export default class NeuralNetwork {
   LogisticLost (yhat, y) {
     return -y*Math.log(yhat) - (1-y)*Math.log(1-yhat)
   }
+
+
+  /**
+   * Backpropargation - where the network learns & updates its weights & biases
+   * 
+   * later: return grads and then in other function update the bias & weights
+   * @param {Array} y
+   * @param {Array} yhat
+   */
+  Backpropargation (y, yhat) {
+    /**
+     * Chain rule
+     * delta = de/dz = de/da * da/dz
+     * de/dw = delta * dz/dw
+     * de/db = delta * dz/db = delta
+     */
+    
+    const l = this.weights.length - 1
+    let de = Matrix.subtractArray(y, yhat) // this is only for the MSE 
+    de.multiply(-1)
+    // resetting the grads
+    const grads = []
+
+    for (let i=l+1; i>0; i--) {
+      let da = Matrix.map(this.params.a[i], dsigmoid) // update to work with ReLu or something else
+      let delta = Matrix.multiply(de, da)
+      let dz = this.params.a[i-1]
+
+      // weight & bias
+      grads.push([Matrix.dot(delta, dz.T), delta])
+
+      // calulate the new error
+      de = Matrix.dot(this.weights[i-1].T, delta)
+    }
+
+    return grads
+  } 
 }
+
+
